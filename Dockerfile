@@ -21,6 +21,9 @@ RUN pip install --no-cache-dir --upgrade pip wheel
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
+# Explicitly install packaging (make sure it's included)
+RUN pip install --no-cache-dir --prefix=/install packaging
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Stage 2 — Runtime
@@ -38,7 +41,7 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
-# Copy installed packages
+# Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
 # Copy application source
