@@ -1,0 +1,37 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+  
+  # Auto-deploy when you push to main branch
+  push:
+    branches: [ "main", "master" ]
+  
+  # Auto-deploy when you create a release tag
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Login to Hugging Face
+        run: echo "${{ secrets.HF_TOKEN }}" | docker login hf.co -u ${{ secrets.HF_USERNAME }} --password-stdin
+      
+      - name: Build and Push Docker image
+        run: |
+          docker build --platform linux/amd64 -t hf.co/spaces/${{ secrets.HF_USERNAME }}/background-remover-api:latest .
+          docker push hf.co/spaces/${{ secrets.HF_USERNAME }}/background-remover-api:latest
+      
+      - name: Restart Hugging Face Space
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.HF_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://huggingface.co/api/spaces/${{ secrets.HF_USERNAME }}/background-remover-api/restart
