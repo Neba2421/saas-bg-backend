@@ -7,8 +7,6 @@ pillow>=10.3.0
 python-multipart>=0.0.9
 python-dotenv>=1.0.1
 pytest>=8.2.2
-# Pin numba to a stable version that doesn't have the caching bug
 numba==0.59.1
-# Pin pymatting for compatibility
 pymatting==1.1.8
 packaging>=24.0
