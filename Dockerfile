@@ -1,8 +1,6 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # Stage 1 — Builder
-# Install Python packages and pre-download the Silueta ONNX model.
-# Keeping this separate from the runtime stage avoids shipping build tooling
-# and intermediate cache layers into production.
+# Install Python packages into an isolated prefix.
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS builder
 
@@ -18,11 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python dependencies into an isolated prefix.
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# Pre-download the Silueta ONNX model so it's baked into the image
-# and the container never needs outbound model downloads at runtime.
-RUN REMBG_CACHE=/install/lib/python3.11/site-packages/rembg/sessions \
-    python -c "from rembg import new_session; new_session('silueta')"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -49,6 +42,9 @@ COPY --from=builder /install /usr/local
 COPY --chown=appuser:appgroup . .
 
 USER appuser
+
+# Tell rembg where to cache the model (writable location for non-root user)
+ENV U2NET_HOME=/tmp/rembg_cache
 
 # ── Environment defaults (overridden by Render environment variables) ──────────
 ENV ORT_NUM_THREADS=1 \
