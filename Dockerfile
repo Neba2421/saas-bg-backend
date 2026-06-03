@@ -5,22 +5,19 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Correct package names for Debian slim
+# Build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
         libgl1 \
         libglib2.0-0 \
-        libatlas3-base \
-        liblapack3 \
-        libblas3 \
         python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and install wheel support
-RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip wheel
 
-# Install Python dependencies into an isolated prefix.
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
@@ -30,32 +27,33 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS runtime
 
-# Install runtime libraries (corrected package names)
+# Runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
-        libatlas3-base \
-        liblapack3 \
-        libblas3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user for security.
+# Create non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
-# Copy installed packages from builder.
+# Copy installed packages
 COPY --from=builder /install /usr/local
 
-# Copy application source.
+# Copy application source
 COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-# Tell rembg where to cache the model (writable location for non-root user)
+# Create cache directories
+RUN mkdir -p /tmp/numba_cache /tmp/rembg_cache
+
+# Set cache directories to avoid numba errors
+ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 ENV U2NET_HOME=/tmp/rembg_cache
 
-# ── Environment defaults (overridden by Render environment variables) ──────────
+# Environment defaults
 ENV ORT_NUM_THREADS=1 \
     OMP_NUM_THREADS=1 \
     WEB_CONCURRENCY=4 \
@@ -67,11 +65,11 @@ ENV ORT_NUM_THREADS=1 \
 
 EXPOSE 8000
 
-# Docker health check — runs every 30 s, 3 failures = unhealthy.
+# Health check with longer start period for model download
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python healthcheck.py
 
-# ── Gunicorn: 4 UvicornWorkers, memory recycled every 1000 requests ───────────
+# Start gunicorn
 CMD gunicorn app:app \
     --workers ${WEB_CONCURRENCY} \
     --worker-class uvicorn.workers.UvicornWorker \
