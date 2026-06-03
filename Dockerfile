@@ -5,7 +5,6 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
@@ -14,15 +13,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip wheel
 
-# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-
-# Explicitly install packaging (make sure it's included)
-RUN pip install --no-cache-dir --prefix=/install packaging
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -30,13 +24,11 @@ RUN pip install --no-cache-dir --prefix=/install packaging
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS runtime
 
-# Runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
@@ -44,19 +36,19 @@ WORKDIR /app
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
+# ✅ CRITICAL FIX: Reinstall packaging in runtime stage
+RUN pip install --no-cache-dir packaging
+
 # Copy application source
 COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-# Create cache directories
 RUN mkdir -p /tmp/numba_cache /tmp/rembg_cache
 
-# Set cache directories to avoid numba errors
 ENV NUMBA_CACHE_DIR=/tmp/numba_cache
 ENV U2NET_HOME=/tmp/rembg_cache
 
-# Environment defaults
 ENV ORT_NUM_THREADS=1 \
     OMP_NUM_THREADS=1 \
     WEB_CONCURRENCY=4 \
@@ -68,11 +60,9 @@ ENV ORT_NUM_THREADS=1 \
 
 EXPOSE 8000
 
-# Health check with longer start period for model download
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python healthcheck.py
 
-# Start gunicorn
 CMD gunicorn app:app \
     --workers ${WEB_CONCURRENCY} \
     --worker-class uvicorn.workers.UvicornWorker \
