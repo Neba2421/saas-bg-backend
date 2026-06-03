@@ -115,6 +115,32 @@ A production-ready FastAPI SaaS backend for removing image backgrounds using the
 | `WEB_CONCURRENCY` | 4 | Number of Gunicorn workers |
 | `ALLOWED_ORIGINS` | localhost | Comma-separated list of allowed CORS origins |
 
+
+
+## Hugging Face Spaces Deployment
+
+### Deploy for Free on Hugging Face
+
+Hugging Face Spaces offers **16GB RAM for free** - perfect for ML models like rembg.
+
+### One-Click Deployment
+
+1. **Create a Space** at [huggingface.co/new-space](https://huggingface.co/new-space)
+   - Name: `background-remover-api`
+   - SDK: Select **"Docker"**
+   - Visibility: Public (or Protected with PRO plan)
+
+2. **Clone and deploy**:
+   ```bash
+   git clone https://huggingface.co/spaces/YOUR_USERNAME/background-remover-api
+   cd background-remover-api
+   cp -r /path/to/your/saas-bg-backend/* .
+   git add .
+   git commit -m "Deploy FastAPI background remover"
+   git push
+
+
+
 ## API Endpoints
 
 ### Meta Endpoints
