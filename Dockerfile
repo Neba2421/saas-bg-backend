@@ -1,17 +1,24 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # Stage 1 — Builder
-# Install Python packages into an isolated prefix.
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# System build deps (for Pillow C extensions, etc.)
+# Add build dependencies needed for pymatting, numpy, and scipy
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
+        g++ \
         libgl1 \
         libglib2.0-0 \
+        libatlas-base-dev \
+        liblapack-dev \
+        libblas-dev \
+        python3-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install wheel support
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
 # Install Python dependencies into an isolated prefix.
 COPY requirements.txt .
@@ -20,14 +27,16 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Stage 2 — Runtime
-# Minimal image: only the installed packages + app code.
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS runtime
 
-# Runtime-only system libraries.
+# Install runtime libraries (no build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
+        libatlas-base-dev \
+        liblapack-dev \
+        libblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for security.
@@ -59,7 +68,7 @@ ENV ORT_NUM_THREADS=1 \
 EXPOSE 8000
 
 # Docker health check — runs every 30 s, 3 failures = unhealthy.
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python healthcheck.py
 
 # ── Gunicorn: 4 UvicornWorkers, memory recycled every 1000 requests ───────────
