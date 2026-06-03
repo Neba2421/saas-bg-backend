@@ -5,15 +5,15 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Add build dependencies needed for pymatting, numpy, and scipy
+# Correct package names for Debian slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
         libgl1 \
         libglib2.0-0 \
-        libatlas-base-dev \
-        liblapack-dev \
-        libblas-dev \
+        libatlas3-base \
+        liblapack3 \
+        libblas3 \
         python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,13 +30,13 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS runtime
 
-# Install runtime libraries (no build tools)
+# Install runtime libraries (corrected package names)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
-        libatlas-base-dev \
-        liblapack-dev \
-        libblas-dev \
+        libatlas3-base \
+        liblapack3 \
+        libblas3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for security.
