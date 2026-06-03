@@ -1,15 +1,12 @@
 name: Deploy to Hugging Face Spaces
 
 on:
-  # Manual trigger from GitHub UI
   workflow_dispatch:
   
-  # Auto-deploy when you push to main branch
   push:
-    branches: [ "main", "master" ]
-  
-  # Auto-deploy when you create a release tag
-  push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
 
@@ -34,4 +31,4 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.HF_TOKEN }}" \
             -H "Content-Type: application/json" \
-            https://huggingface.co/api/spaces/${{ secrets.HF_USERNAME }}/background-remover-api/restart
+            https://huggingface.co/api/spaces/${{ secrets.HF_USERNAME }}/background-remover-api/restart      
