@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Stage 2 — Runtime (Updated for Hugging Face Spaces)
+# Stage 2 — Runtime (Hugging Face compatible)
 # ══════════════════════════════════════════════════════════════════════════════
 FROM python:3.11-slim AS runtime
 
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user with UID 1000 (Hugging Face requirement)
+# Hugging Face requires user ID 1000
 RUN useradd -m -u 1000 appuser && \
     addgroup appgroup && \
     usermod -a -G appgroup appuser
@@ -68,5 +68,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD python healthcheck.py
 
-# Run with uvicorn (better for Hugging Face than gunicorn)
+# Run with uvicorn (better for Hugging Face)
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
