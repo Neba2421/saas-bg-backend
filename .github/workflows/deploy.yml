@@ -3,8 +3,8 @@ name: Deploy to Hugging Face Spaces
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
-    tags: [ "v*" ]
+    branches: [ main, master ]
+    tags: [ 'v*' ]
 
 jobs:
   deploy:
@@ -13,21 +13,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Hugging Face (with retry)
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 2
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: |
-            echo "${{ secrets.HF_TOKEN }}" | docker login hf.co -u "${{ secrets.HF_USERNAME }}" --password-stdin
+      - name: Test HF Token (Debug)
+        run: |
+          echo "Token starts with: ${#HF_TOKEN} characters"
+          echo "Username: ${{ secrets.HF_USERNAME }}"
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Login to Hugging Face
+        run: |
+          echo "${{ secrets.HF_TOKEN }}" | docker login hf.co -u "${{ secrets.HF_USERNAME }}" --password-stdin
 
       - name: Build and Push Docker image
         run: |
           docker build --platform linux/amd64 -t "hf.co/spaces/${{ secrets.HF_USERNAME }}/background-remover-api:latest" .
           docker push "hf.co/spaces/${{ secrets.HF_USERNAME }}/background-remover-api:latest"
 
-      - name: Restart Hugging Face Space
+      - name: Restart Space
         run: |
           curl -X POST \
             "https://huggingface.co/api/spaces/${{ secrets.HF_USERNAME }}/background-remover-api/restart" \
